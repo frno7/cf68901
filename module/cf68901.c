@@ -175,7 +175,9 @@ static void timer_delay_event(struct cf68901_module *module,
 	if (!timer_rd_interrupt_enable(module, timer))
 		return;
 
-	if (timer->timeout->c && timer_cycle.c < timer->timeout->c)
+	const bool active = timer->timeout->c > 0;
+
+	if (active && timer_cycle.c < timer->timeout->c)
 		goto request_event;
 
 	const uint32_t period = timer_period(timer);
@@ -199,7 +201,7 @@ static void timer_delay_event(struct cf68901_module *module,
 	 * pending bit is cleared by the interrupt handling routine
 	 * without performing an interrupt acknowledge sequence.
 	 */
-	timer_wr_interrupt_pending(module, timer, true);
+	timer_wr_interrupt_pending(module, timer, active);
 
 request_event:; /* Label followed by a declaration is a C23 extension. */
 	const struct cf68901_clk e =
