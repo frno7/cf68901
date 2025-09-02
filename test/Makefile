@@ -1,0 +1,61 @@
+# SPDX-License-Identifier: GPL-2.0
+
+cf68901_test_dir := $(dir $(lastword $(MAKEFILE_LIST)))
+
+CF68901_TEST := $(addprefix $(cf68901_test_dir),			\
+	timera)
+
+CF68901_TEST_PCS := $(addsuffix .pcs,$(CF68901_TEST))
+CF68901_TEST_SRC := $(CF68901_TEST_PCS:%.pcs=%.c)
+CF68901_TEST_OBJ := $(CF68901_TEST_SRC:%.c=%.o)
+
+CF68901_TEST_PCSC := $(cf68901_test_dir)pcsc
+CF68901_TEST_PCSC_SRC := $(CF68901_TEST_PCSC:%=%.c)
+CF68901_TEST_PCSC_OBJ := $(CF68901_TEST_PCSC_SRC:%.c=%.o)
+
+CF68901_TEST_SUITE := $(cf68901_test_dir)suite
+CF68901_TEST_SUITE_SRC := $(CF68901_TEST_SUITE:%=%.c)
+CF68901_TEST_SUITE_OBJ := $(CF68901_TEST_SUITE_SRC:%.c=%.o)
+
+CF68901_TEST_CFLAGS = $(BASIC_HOST_CFLAGS) $(HOST_CFLAGS)		\
+	-Iinclude/cf68901
+
+ifeq (1,$(TRACE))
+CF68901_TEST_CFLAGS += -DHAVE_TRACE
+endif
+
+CF68901_TEST_ALL_OBJ =							\
+	$(CF68901_TEST_OBJ)						\
+	$(CF68901_TEST_PCSC_OBJ)					\
+	$(CF68901_TEST_SUITE_OBJ)
+
+ALL_OBJ += $(CF68901_TEST_ALL_OBJ)
+
+OTHER_CLEAN += $(CF68901_TEST_SRC) $(CF68901_TEST_PCSC) $(CF68901_TEST)
+
+$(CF68901_TEST_ALL_OBJ): %.o : %.c
+	$(QUIET_CC)$(HOST_CC) $(CF68901_TEST_CFLAGS) -c -o $@ $<
+
+$(CF68901_TEST_SRC): $(CF68901_TEST_PCSC)
+$(CF68901_TEST_SRC): %.c : %.pcs
+	$(QUIET_GEN)$(CF68901_TEST_PCSC) -o $@ $<
+
+$(CF68901_TEST_PCSC): $(CF68901_TEST_PCSC_OBJ)
+	$(QUIET_CC)$(HOST_CC) $(CF68901_TEST_CFLAGS) -o $@ $^
+
+$(CF68901_TEST): $(CF68901_TEST_SUITE_OBJ) $(CF68901_OBJ)
+$(CF68901_TEST): %: %.o
+	$(QUIET_CC)$(HOST_CC) $(CF68901_TEST_CFLAGS) -o $@ $^
+
+define CF68901_TEST_target
+.PHONY: verify-$(1)
+verify-$(1): $$(addprefix $$(cf68901_test_dir),$(1))
+	$$(QUIET_VERIFY)$$<
+endef
+
+$(foreach t,$(notdir $(CF68901_TEST)),$(eval $(call CF68901_TEST_target,$(t))))
+
+CF68901_TEST_VERIFY := $(addprefix verify-,$(notdir $(CF68901_TEST)))
+
+.PHONY: verify
+verify: $(CF68901_TEST_VERIFY)

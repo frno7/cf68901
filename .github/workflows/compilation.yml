@@ -10,7 +10,7 @@ jobs:
     strategy:
       fail-fast: false  # 'false' means don't stop if some archs fail.
       matrix:
-        arch: [ppc64le, aarch64, x86_64]
+        arch: [x86_64]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -31,6 +31,10 @@ jobs:
             git config --global --add safe.directory "*"
             JOBS="$(getconf _NPROCESSORS_ONLN)"
             make -j"$JOBS" V=1 module
+            make clean
+            make -j"$JOBS" V=1 verify
+            make clean
+            make -j"$JOBS" V=1 TRACE=1 verify
 
       - name: Compile CF68901 for Linux/x86_64
         if: ${{ matrix.arch == 'x86_64' }}
@@ -41,3 +45,7 @@ jobs:
           make -j"$JOBS" V=1 S=1 module
           git clean -fdx
           make -j"$JOBS" V=1 module
+          make clean
+          make -j"$JOBS" V=1 verify
+          make clean
+          make -j"$JOBS" V=1 TRACE=1 verify

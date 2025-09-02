@@ -1,0 +1,122 @@
+// SPDX-License-Identifier: GPL-2.0
+
+#ifndef CF68901_TEST_TEST_H
+#define CF68901_TEST_TEST_H
+
+#include <inttypes.h>
+#include <stddef.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+#include "cf68901/macro.h"
+#include "cf68901/test/suite.h"
+
+#define TEST_INIT							\
+	struct cf68901_module module = { };				\
+	struct cf68901_event event = { };				\
+	struct cf68901_clk clk = { };					\
+	uint32_t clk_frequency = 4000000;	/* Default */		\
+	uint32_t xtal1_frequency = 2457600;	/* Default */		\
+	bool irq = false
+
+#define ERROR(...)							\
+({									\
+	fprintf(stderr, __VA_ARGS__);					\
+	exit(EXIT_FAILURE);						\
+})
+
+#define cycle(n)							\
+({									\
+	const uint64_t c = clk.c + (n);					\
+									\
+	while (clk.c < c) {						\
+		clk.c = event.clk.c > 0 &&				\
+			event.clk.c < c ? event.clk.c : c;		\
+		if (event.clk.c > 0 && event.clk.c <= clk.c)		\
+			EVENT(&event, &irq, event = module.port.event(&module, clk)); \
+		if (event.clk.c > 0 && event.clk.c < clk.c)		\
+			ERROR("CLK event in the past\n");		\
+	}								\
+})
+
+#define assign(signal, value)						\
+	assign_##signal(&module, &event, &irq, clk, value)
+#define assert(signal, value, line)					\
+	assert_##signal(&module, &event, &irq, clk, value, line)
+
+#if defined(HAVE_TRACE)
+#define TRACE(event, irq_, ...)						\
+({									\
+	printf("%08" PRIu64 " %s", clk.c, #__VA_ARGS__);		\
+	__VA_ARGS__;							\
+	printf(" [irq %d event %" PRIu64 " irq %d]\n",			\
+		*(irq_), (event)->clk.c, (event)->irq);			\
+})
+#else
+#define TRACE(event, irq, ...) ({ __VA_ARGS__; })
+#endif
+
+#define EVENT(event, irq_, ...)						\
+({									\
+	TRACE(event, irq_, __VA_ARGS__);				\
+	if ((event)->irq)						\
+		*(irq_) = true;						\
+})
+
+#define assign_CLK(module, event, irq, clk, frequency)			\
+({									\
+	clk_frequency = (frequency);					\
+	EVENT(event, irq, *(module) = cf68901_init(clk_frequency, xtal1_frequency)); \
+	(module)->debug.report = report;				\
+})
+
+#define assign_XTAL1(module, event, irq, clk, frequency)		\
+({									\
+	xtal1_frequency = (frequency);					\
+	EVENT(event, irq, *(module) = cf68901_init(clk_frequency, xtal1_frequency)); \
+	(module)->debug.report = report;				\
+})
+
+static inline void assign_RESET_L(					\
+	struct cf68901_module *module, struct cf68901_event *event,	\
+	bool *irq, struct cf68901_clk clk, bool reset_l)		\
+{									\
+	EVENT(event, irq, module->port.reset_l(module, clk, reset_l));	\
+}
+
+static inline void assign_IACK_L(					\
+	struct cf68901_module *module, struct cf68901_event *event,	\
+	bool *irq, struct cf68901_clk clk, bool iack_l)			\
+{									\
+	if (!iack_l) {							\
+		if (!(*irq))						\
+			ERROR("IRQ not asserted\n");			\
+		*irq = false;						\
+	}								\
+}
+
+#define CF68901_DEFINE_ASSIGN(signal)					\
+static inline void assign_##signal(					\
+	struct cf68901_module *module, struct cf68901_event *event,	\
+	bool *irq, struct cf68901_clk clk, uint8_t data)		\
+{									\
+	EVENT(event, irq, *event = module->port.wr_da(module,		\
+		clk, CF68901_REG_##signal, data));			\
+}
+
+#define assert_IRQ_L(module, event, irq, clk, value, line)		\
+({									\
+	bool assert;							\
+	TRACE(event, irq, assert = *(irq) == !(value));			\
+	if (!assert) {							\
+		static char str[1024];					\
+		snprintf(str, sizeof(str),				\
+			"%s:%d: error: assert: %08" PRIu64 ": IRQ_L!%d", \
+			source, line, clk.c, value);			\
+		return str;						\
+	}								\
+})
+
+CF68901_TEST_REGS(CF68901_DEFINE_ASSIGN)
+
+#endif /* CF68901_TEST_TEST_H */

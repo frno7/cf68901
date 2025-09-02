@@ -10,6 +10,48 @@ the [Atari ST] in the 1980s.
 The CF68901 repository is made to be included as a Git submodule in larger
 designs, for example [PSG play](https://github.com/frno7/psgplay).
 
+# Test and verification
+
+`make verify` compiles tests and verifies. Each test is a
+port command sequence (PCS). A trivial example testing a 200 Hz timer A:
+
+```
+CLK=4000000             -- 4.000000 MHz CLK
+XTAL1=2457600           -- 2.457600 MHz XTAL1
+
+IACK_L=1
+RESET_L=0 #4
+RESET_L=1 #4
+
+#1 IMRA=0b00100000      -- timer A mask enable
+#1 IERA=0b00100000      -- timer A enable
+#1 TADR=192             -- data counter 192 with prescale 64 is 200 Hz
+#1 TACR=5               -- control mode 5 is prescale 64
+
+#19999 IRQ_L!1          -- assert that a timer A interrupt is requested
+    #1 IRQ_L!0          -- after 64*192=12288 XTAL1 cycles = 20000 CLK cycles
+IACK_L=0 #1 IACK_L=1    -- interrupt acknowledge
+
+#19998 IRQ_L!1
+    #1 IRQ_L!0
+IACK_L=0 #1 IACK_L=1
+
+#19998 IRQ_L!1
+    #1 IRQ_L!0
+IACK_L=0 #1 IACK_L=1
+
+-- ... the timer repeats indefinitely in 20000 CLK cycles ...
+```
+
+Commands are port assignments (`=`), clock cycle increments (`#`), and
+assertions (`!`). Newlines and whitespace don’t matter, and comments
+begins with `--`.
+
+`make TRACE=1 verify` displays commands and events during verification.
+
+The CF68901 implementation in C can be co-simulated, in cycle-for-cycle
+lockstep, with other implementations in [VHDL] and [Verilog].
+
 # Manuals and references
 
 - The [Motorola MC68901 manual].
@@ -29,4 +71,7 @@ designs, for example [PSG play](https://github.com/frno7/psgplay).
 
 [Hatari]: https://github.com/hatari/hatari
 [MiSTery]: https://github.com/gyurco/MiSTery
-[Zest]: https://github.com/zerkman/zest
+[Zest]: https://codeberg.org/zerkman/zest
+
+[VHDL]: https://en.wikipedia.org/wiki/VHDL
+[Verilog]: https://en.wikipedia.org/wiki/Verilog

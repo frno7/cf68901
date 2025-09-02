@@ -1,0 +1,45 @@
+CLK=4000000		-- 4.000000 MHz CLK
+XTAL1=2457600		-- 2.457600 MHz XTAL1
+
+IACK_L=1
+RESET_L=0 #4
+RESET_L=1 #4
+
+#1 IMRA=0b00100000	-- timer A mask enable
+#1 IERA=0b00100000	-- timer A enable
+#1 TADR=192		-- data counter 192 with prescale 64 is 200 Hz
+#1 TACR=5		-- control mode 5 is prescale 64
+
+#19999 IRQ_L!1		-- assert that a timer A interrupt is requested
+    #1 IRQ_L!0		-- after 64*192=12288 XTAL1 cycles = 20000 CLK cycles
+IACK_L=0 #1 IACK_L=1	-- interrupt acknowledge
+
+#19998 IRQ_L!1
+    #1 IRQ_L!0
+IACK_L=0 #1 IACK_L=1
+
+#19998 IRQ_L!1
+    #1 IRQ_L!0
+IACK_L=0 #1 IACK_L=1
+
+#19998 IRQ_L!1
+    #1 IRQ_L!0
+IACK_L=0 #1 IACK_L=1
+
+#19998 IRQ_L!1
+    #1 IRQ_L!0
+IACK_L=0 #1 IACK_L=1
+
+#19998 IRQ_L!1
+    #1 IRQ_L!0
+IACK_L=0 #1 IACK_L=1
+
+#19998 IRQ_L!1
+    #1 IRQ_L!0
+IACK_L=0 #1 IACK_L=1
+
+#19998 IRQ_L!1
+    #1 IRQ_L!0
+IACK_L=0 #1 IACK_L=1
+
+-- ... the timer repeats indefinitely in 20000 CLK cycles ...
