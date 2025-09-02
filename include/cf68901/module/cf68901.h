@@ -205,6 +205,10 @@ struct cf68901_timer_cycle {
 	uint64_t c;
 };
 
+struct cf68901_timer_state {
+	struct cf68901_timer_cycle timeout;
+};
+
 struct cf68901_tabi {
 	uint64_t events;
 };
@@ -264,10 +268,10 @@ struct cf68901_module {
 	struct cf68901_state {
 		union cf68901_reg reg;
 
-		struct cf68901_timer_cycle timeout_a;
-		struct cf68901_timer_cycle timeout_b;
-		struct cf68901_timer_cycle timeout_c;
-		struct cf68901_timer_cycle timeout_d;
+		struct cf68901_timer_state timer_a;
+		struct cf68901_timer_state timer_b;
+		struct cf68901_timer_state timer_c;
+		struct cf68901_timer_state timer_d;
 
 		struct cf68901_tabi tai;
 		struct cf68901_tabi tbi;

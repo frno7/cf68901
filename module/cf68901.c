@@ -16,7 +16,7 @@ struct cf68901_timer {
 	uint8_t *ctrl;
 	uint8_t ctrl_shift;
 
-	struct cf68901_timer_cycle *timeout;
+	struct cf68901_timer_state *state;
 };
 
 static uint64_t cycle_transform(
@@ -145,17 +145,18 @@ static uint8_t timer_counter(struct cf68901_module *module,
 
 	const uint32_t period = timer_period(timer);
 	const uint32_t prescale = timer_prescale(module, timer);
+	const struct cf68901_timer_cycle *timeout = &timer->state->timeout;
 
-	if (!timer->timeout->c)
+	if (!timeout->c)
 		return *timer->data;
 
-	if (timer_cycle.c < timer->timeout->c) {
-		const uint64_t remaining = timer->timeout->c - timer_cycle.c;
+	if (timer_cycle.c < timeout->c) {
+		const uint64_t remaining = timeout->c - timer_cycle.c;
 
 		return (remaining + prescale - 1) / prescale;
 	}
 
-	const uint64_t elapsed = (timer_cycle.c - timer->timeout->c) / prescale;
+	const uint64_t elapsed = (timer_cycle.c - timeout->c) / prescale;
 
 	return period - (elapsed % period);
 }
@@ -164,6 +165,8 @@ static void timer_delay_event(struct cf68901_module *module,
 	struct cf68901_event *event, const struct cf68901_timer *timer,
 	const struct cf68901_timer_cycle timer_cycle)
 {
+	struct cf68901_timer_cycle *timeout = &timer->state->timeout;
+
 	if (timer_ctrl(timer) == cf68901_ctrl_stop) {
 		return;		/* FIXME: Update counter with elapsed time */
 	}
@@ -175,17 +178,16 @@ static void timer_delay_event(struct cf68901_module *module,
 	if (!timer_rd_interrupt_enable(module, timer))
 		return;
 
-	const bool active = timer->timeout->c > 0;
+	const bool active = timeout->c > 0;
 
-	if (active && timer_cycle.c < timer->timeout->c)
+	if (active && timer_cycle.c < timeout->c)
 		goto request_event;
 
 	const uint32_t period = timer_period(timer);
 	const uint32_t prescale = timer_prescale(module, timer);
-	const uint64_t elapsed = timer->timeout->c ?
-		timer_cycle.c - timer->timeout->c : 0;
+	const uint64_t elapsed = active ? timer_cycle.c - timeout->c : 0;
 
-	timer->timeout->c = timer_cycle.c +
+	timeout->c = timer_cycle.c +
 		period * prescale - (elapsed % (period * prescale));
 
 	/*
@@ -205,7 +207,7 @@ static void timer_delay_event(struct cf68901_module *module,
 
 request_event:; /* Label followed by a declaration is a C23 extension. */
 	const struct cf68901_clk e =
-		mfp_from_timer_cycle_align(module->frequency, *timer->timeout);
+		mfp_from_timer_cycle_align(module->frequency, *timeout);
 
 	if (!event->clk.c || e.c < event->clk.c)
 		event->clk = e;
@@ -249,7 +251,7 @@ static int assert_mfp_irq(struct cf68901_module *module)
 		.data = &state_.reg.u8[CF68901_REG_##dr_],		\
 		.ctrl = &state_.reg.u8[CF68901_REG_##cr_],		\
 		.ctrl_shift = cr_shift_,				\
-		.timeout = &state_.timeout_##symbol_,			\
+		.state = &state_.timer_##symbol_,			\
 	}
 
 #define DEFINE_TIMERS(state_)						\
