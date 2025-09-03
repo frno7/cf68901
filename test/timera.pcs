@@ -5,10 +5,11 @@ IACK_L=1
 RESET_L=0 #4
 RESET_L=1 #4
 
-#1 IMRA=0b00100000	-- timer A mask enable
-#1 IERA=0b00100000	-- timer A enable
-#1 TADR=192		-- data counter 192 with prescale 64 is 200 Hz
-#1 TACR=5		-- control mode 5 is prescale 64
+#2 VR=0x40		-- Vector base 0x40 with SEI=0
+#1 IMRA=0b00100000	-- Timer A mask enable
+#1 IERA=0b00100000	-- Timer A enable
+#1 TADR=192		-- Data counter 192 with prescale 64 is 200 Hz
+#1 TACR=5		-- Control mode 5 is prescale 64, starting the timer
 
 #19999 IRQ_L!1		-- assert that a timer A interrupt is requested
     #1 IRQ_L!0		-- after 64*192=12288 XTAL1 cycles = 20000 CLK cycles

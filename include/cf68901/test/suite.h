@@ -13,10 +13,11 @@
 CF68901_TEST_PROTOTYPE;
 
 #define CF68901_TEST_REGS(a)						\
-	a(TACR)								\
-	a(TADR)								\
+	a(IERA)								\
 	a(IMRA)								\
-	a(IERA)
+	a(VR)								\
+	a(TACR)								\
+	a(TADR)
 
 #define CF68901_TEST_ASSIGNS(a)						\
 	a(CLK)								\
