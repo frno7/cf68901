@@ -58,7 +58,10 @@ RESET_L=1 #4
 #9999 IRQ_L!1
    #1 VECTOR!0x4d
 
-#9999 IRQ_L!1
+#1171  IERA=0b00000000	-- Timer A disable
+#50000 IERA=0b00100000	-- Timer A enable after 5*10000 CLK cycles
+
+#9999-1171 IRQ_L!1
    #1 VECTOR!0x4d
 
 #9999 IRQ_L!1

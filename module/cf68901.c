@@ -182,13 +182,6 @@ static void timer_delay_event(struct cf68901_module *module,
 		timer->state->stopped.c = 0;
 	}
 
-	/*
-	 * A disabled channel is completely inactive; interrupts
-	 * received on the channel are ignored by the MFP.
-	 */
-	if (!timer_rd_interrupt_enable(module, timer))
-		return;
-
 	if (counting && timer_cycle.c < timeout->c)
 		goto request_event;
 
@@ -211,8 +204,12 @@ static void timer_delay_event(struct cf68901_module *module,
 	 * determine the interrupting channel, and then the interrupt
 	 * pending bit is cleared by the interrupt handling routine
 	 * without performing an interrupt acknowledge sequence.
+	 *
+	 * A disabled channel is inactive; interrupts received on the
+	 * channel are ignored by the MFP.
 	 */
-	timer_wr_interrupt_pending(module, timer, counting);
+	timer_wr_interrupt_pending(module, timer,
+		counting && timer_rd_interrupt_enable(module, timer));
 
 request_event:; /* Label followed by a declaration is a C23 extension. */
 	const struct cf68901_clk e =
