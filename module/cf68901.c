@@ -208,8 +208,8 @@ static void timer_delay_event(struct cf68901_module *module,
 	 * A disabled channel is inactive; interrupts received on the
 	 * channel are ignored by the MFP.
 	 */
-	timer_wr_interrupt_pending(module, timer,
-		counting && timer_rd_interrupt_enable(module, timer));
+	if (counting && timer_rd_interrupt_enable(module, timer))
+		timer_wr_interrupt_pending(module, timer, true);
 
 request_event:; /* Label followed by a declaration is a C23 extension. */
 	const struct cf68901_clk e =
