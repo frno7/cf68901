@@ -19,7 +19,6 @@ port command sequence (PCS). A trivial example testing a 200 Hz timer A:
 CLK=4000000             -- 4.000000 MHz CLK
 XTAL1=2457600           -- 2.457600 MHz XTAL1
 
-IACK_L=1
 RESET_L=0 #4
 RESET_L=1 #4
 
@@ -29,19 +28,18 @@ RESET_L=1 #4
 #1 TADR=192		-- Data counter 192 with prescale 64 is 200 Hz
 #1 TACR=5		-- Control mode 5 is prescale 64, starting the timer
 
-#19999 IRQ_L!1          -- assert that a timer A interrupt is requested
-    #1 IRQ_L!0          -- after 64*192=12288 XTAL1 cycles = 20000 CLK cycles
-IACK_L=0 #1 IACK_L=1    -- interrupt acknowledge
+-- Assert that a timer A interrupt is requested after
+-- exactly 64*192=12288 XTAL1 cycles = 20000 CLK cycles
+#19999 IRQ_L!1		-- An interrupt is not yet asserted
+    #1 VECTOR!0x4d	-- Acknowledge timer A interrupt on channel 13 (0xd)
 
-#19998 IRQ_L!1
-    #1 IRQ_L!0
-IACK_L=0 #1 IACK_L=1
+#19999 IRQ_L!1
+    #1 VECTOR!0x4d
 
-#19998 IRQ_L!1
-    #1 IRQ_L!0
-IACK_L=0 #1 IACK_L=1
+#19999 IRQ_L!1
+    #1 VECTOR!0x4d
 
--- ... the timer repeats indefinitely in 20000 CLK cycles ...
+-- ... The timer repeats indefinitely in 20000 CLK cycles ...
 ```
 
 Commands are port assignments (`=`), clock cycle increments (`#`), and

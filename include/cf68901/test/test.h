@@ -84,17 +84,6 @@ static inline void assign_RESET_L(					\
 	EVENT(event, irq, module->port.reset_l(module, clk, reset_l));	\
 }
 
-static inline void assign_IACK_L(					\
-	struct cf68901_module *module, struct cf68901_event *event,	\
-	bool *irq, struct cf68901_clk clk, bool iack_l)			\
-{									\
-	if (!iack_l) {							\
-		if (!(*irq))						\
-			ERROR("IRQ not asserted\n");			\
-		*irq = false;						\
-	}								\
-}
-
 #define CF68901_DEFINE_ASSIGN(signal)					\
 static inline void assign_##signal(					\
 	struct cf68901_module *module, struct cf68901_event *event,	\
@@ -108,6 +97,22 @@ static inline void assign_##signal(					\
 ({									\
 	bool assert;							\
 	TRACE(event, irq, assert = *(irq) == !(value));			\
+	if (!assert) {							\
+		static char str[1024];					\
+		snprintf(str, sizeof(str),				\
+			"%s:%d: error: assert: %08" PRIu64 ": IRQ_L!%d", \
+			source, line, clk.c, value);			\
+		return str;						\
+	}								\
+})
+
+#define assert_VECTOR(module, event, irq, clk, value, line)		\
+({									\
+	if (!(*irq))							\
+		ERROR("IRQ not asserted\n");				\
+	*irq = false;							\
+	bool assert;							\
+	TRACE(event, irq, assert = (module)->port.vector(module) == (value)); \
 	if (!assert) {							\
 		static char str[1024];					\
 		snprintf(str, sizeof(str),				\
