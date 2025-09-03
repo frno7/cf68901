@@ -80,3 +80,25 @@ RESET_L=1 #4
    #1 VECTOR!0x4d
 
 -- ... The timer repeats indefinitely in 10000 CLK cycles (400 Hz) ...
+
+#542 TACR=0		-- Wait an arbitrary number of cycles, stop the timer
+  #1 TADR=192		-- Data counter 192 with prescale 16 is 800 Hz
+  #1 TACR=3		-- Control mode 3 is prescale 16, starting the timer
+
+-- Assert that a timer A interrupt is requested after
+-- exactly 16*192=3072 XTAL1 cycles = 5000 CLK cycles (800 Hz)
+
+#4999 IRQ_L!1
+   #1 VECTOR!0x4d
+
+#4999 IRQ_L!1
+   #1 VECTOR!0x4d
+
+#4999 IRQ_L!1
+   #1 VECTOR!0x4d
+
+#4999 IRQ_L!1
+   #1 VECTOR!0x4d
+
+#4999 IRQ_L!1
+   #1 VECTOR!0x4d

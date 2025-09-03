@@ -385,6 +385,12 @@ static void mfp_hardwire(struct cf68901_module *module)
 	module->state.reg.ucr.unused = 0;
 }
 
+#define TIMER_RESET(symbol_, tdr_, tcr_, mode_mask_)			\
+	CF68901_REG_##tdr_:						\
+		if (!(module->state.reg.u8[CF68901_REG_##tcr_] & mode_mask_)) \
+			module->state.timer_##symbol_ =			\
+				(struct cf68901_timer_state) { }
+
 static struct cf68901_event mfp_wr_u8(struct cf68901_module *module,
 	struct cf68901_clk clk, uint8_t reg, uint8_t db)
 {
@@ -415,6 +421,11 @@ static struct cf68901_event mfp_wr_u8(struct cf68901_module *module,
 	case CF68901_REG_IPRB:
 		db &= module->state.reg.u8[reg];
 		break;
+
+	case TIMER_RESET(a, TADR, TACR,  0x0f); break;
+	case TIMER_RESET(b, TBDR, TBCR,  0x0f); break;
+	case TIMER_RESET(c, TCDR, TCDCR, 0x70); break;
+	case TIMER_RESET(d, TDDR, TCDCR, 0x07); break;
 	}
 
 	module->state.reg.u8[reg] = db;
