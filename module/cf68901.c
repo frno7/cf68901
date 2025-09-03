@@ -143,12 +143,12 @@ static uint8_t timer_counter(struct cf68901_module *module,
 	if (timer_ctrl(timer) == cf68901_ctrl_stop)
 		return *timer->data;
 
-	const uint32_t period = timer_period(timer);
-	const uint32_t prescale = timer_prescale(module, timer);
 	const struct cf68901_timer_cycle *timeout = &timer->state->timeout;
 
 	if (!timeout->c)
 		return *timer->data;
+
+	const uint32_t prescale = timer_prescale(module, timer);
 
 	if (timer_cycle.c < timeout->c) {
 		const uint64_t remaining = timeout->c - timer_cycle.c;
@@ -157,6 +157,7 @@ static uint8_t timer_counter(struct cf68901_module *module,
 	}
 
 	const uint64_t elapsed = (timer_cycle.c - timeout->c) / prescale;
+	const uint32_t period = timer_period(timer);
 
 	return period - (elapsed % period);
 }
@@ -166,9 +167,19 @@ static void timer_delay_event(struct cf68901_module *module,
 	const struct cf68901_timer_cycle timer_cycle)
 {
 	struct cf68901_timer_cycle *timeout = &timer->state->timeout;
+	const bool counting = timeout->c > 0;
 
 	if (timer_ctrl(timer) == cf68901_ctrl_stop) {
-		return;		/* FIXME: Update counter with elapsed time */
+		if (counting && !timer->state->stopped.c)
+			timer->state->stopped = timer_cycle;
+
+		return;
+	}
+
+	if (counting && timer->state->stopped.c > 0) {
+		timeout->c += timer_cycle.c - timer->state->stopped.c;
+
+		timer->state->stopped.c = 0;
 	}
 
 	/*
@@ -178,14 +189,12 @@ static void timer_delay_event(struct cf68901_module *module,
 	if (!timer_rd_interrupt_enable(module, timer))
 		return;
 
-	const bool active = timeout->c > 0;
-
-	if (active && timer_cycle.c < timeout->c)
+	if (counting && timer_cycle.c < timeout->c)
 		goto request_event;
 
 	const uint32_t period = timer_period(timer);
 	const uint32_t prescale = timer_prescale(module, timer);
-	const uint64_t elapsed = active ? timer_cycle.c - timeout->c : 0;
+	const uint64_t elapsed = counting ? timer_cycle.c - timeout->c : 0;
 
 	timeout->c = timer_cycle.c +
 		period * prescale - (elapsed % (period * prescale));
@@ -203,7 +212,7 @@ static void timer_delay_event(struct cf68901_module *module,
 	 * pending bit is cleared by the interrupt handling routine
 	 * without performing an interrupt acknowledge sequence.
 	 */
-	timer_wr_interrupt_pending(module, timer, active);
+	timer_wr_interrupt_pending(module, timer, counting);
 
 request_event:; /* Label followed by a declaration is a C23 extension. */
 	const struct cf68901_clk e =

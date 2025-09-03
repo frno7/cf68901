@@ -207,6 +207,7 @@ struct cf68901_timer_cycle {
 
 struct cf68901_timer_state {
 	struct cf68901_timer_cycle timeout;
+	struct cf68901_timer_cycle stopped;
 };
 
 struct cf68901_tabi {

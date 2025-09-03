@@ -64,4 +64,19 @@ RESET_L=1 #4
 #9999 IRQ_L!1
    #1 VECTOR!0x4d
 
+#4937 TACR=0		-- Wait an arbitrary number of cycles, stop the timer
+ #170 TACR=5		-- Reset mode 5 for prescale 64, restarting the timer
+
+#9999-4937 IRQ_L!1	-- Timer is delayed 170 CLK cycles when resumed
+   #1 VECTOR!0x4d
+
+#9999 IRQ_L!1
+   #1 VECTOR!0x4d
+
+#9999 IRQ_L!1
+   #1 VECTOR!0x4d
+
+#9999 IRQ_L!1
+   #1 VECTOR!0x4d
+
 -- ... The timer repeats indefinitely in 10000 CLK cycles (400 Hz) ...
