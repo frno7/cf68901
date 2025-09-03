@@ -36,4 +36,32 @@ RESET_L=1 #4
 #19999 IRQ_L!1
     #1 VECTOR!0x4d
 
--- ... The timer repeats indefinitely in 20000 CLK cycles ...
+-- ... The timer repeats indefinitely in 20000 CLK cycles (200 Hz) ...
+
+-- Wait an arbitrary number of cycles, then set the data counter to 96,
+-- with the prescale remaining 64, for 400 Hz that is to be updated when
+-- data counter transitions from 1 to 0.
+#7919 TADR=96
+
+#19999-7919 IRQ_L!1
+    #1 VECTOR!0x4d
+
+-- Assert that a timer A interrupt is requested after
+-- exactly 64*192=6144 XTAL1 cycles = 10000 CLK cycles (400 Hz)
+
+#9999 IRQ_L!1
+   #1 VECTOR!0x4d
+
+#9999 IRQ_L!1
+   #1 VECTOR!0x4d
+
+#9999 IRQ_L!1
+   #1 VECTOR!0x4d
+
+#9999 IRQ_L!1
+   #1 VECTOR!0x4d
+
+#9999 IRQ_L!1
+   #1 VECTOR!0x4d
+
+-- ... The timer repeats indefinitely in 10000 CLK cycles (400 Hz) ...
