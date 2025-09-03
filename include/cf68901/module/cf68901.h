@@ -208,6 +208,8 @@ struct cf68901_timer_cycle {
 struct cf68901_timer_state {
 	struct cf68901_timer_cycle timeout;
 	struct cf68901_timer_cycle stopped;
+	uint32_t prescale;
+	uint32_t period;
 };
 
 struct cf68901_tabi {

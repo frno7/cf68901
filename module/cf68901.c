@@ -162,6 +162,12 @@ static uint8_t timer_counter(struct cf68901_module *module,
 	return period - (elapsed % period);
 }
 
+static bool prescale_changed(const struct cf68901_timer *timer,
+	uint32_t prescale)
+{
+	return timer->state->prescale && timer->state->prescale != prescale;
+}
+
 static void timer_delay_event(struct cf68901_module *module,
 	struct cf68901_event *event, const struct cf68901_timer *timer,
 	const struct cf68901_timer_cycle timer_cycle)
@@ -172,7 +178,6 @@ static void timer_delay_event(struct cf68901_module *module,
 	if (timer_ctrl(timer) == cf68901_ctrl_stop) {
 		if (counting && !timer->state->stopped.c)
 			timer->state->stopped = timer_cycle;
-
 		return;
 	}
 
@@ -182,15 +187,43 @@ static void timer_delay_event(struct cf68901_module *module,
 		timer->state->stopped.c = 0;
 	}
 
+	const uint32_t prescale = timer_prescale(module, timer);
+	const uint32_t period = timer_period(timer);
+
+	if (!timer->state->period)
+		timer->state->period = period;
+
+	if (counting && timeout->c > timer_cycle.c &&
+			prescale_changed(timer, prescale)) {
+		const uint64_t remainder = timeout->c - timer_cycle.c;
+		const uint32_t counter =
+			(remainder / timer->state->prescale) %
+			timer->state->period;
+
+		/*
+		 * The MC68901 MFP manual states that if the prescaler value
+		 * is changed while the timer is enabled, the first out pulse
+		 * will occur at an indeterminate time no less than one or
+		 * more than 200 timer clock cycles. Subsequent time out
+		 * pulses will then occur at the correct interval.
+		 *
+		 * The valid range is 1..200, so the model here takes 100.
+		 */
+		const uint32_t prescale_switch_delay_model = 100;
+
+		timeout->c = timer_cycle.c + (prescale * counter) +
+			prescale_switch_delay_model;
+	}
+
+	timer->state->prescale = prescale;
+
 	if (counting && timer_cycle.c < timeout->c)
 		goto request_event;
 
-	const uint32_t period = timer_period(timer);
-	const uint32_t prescale = timer_prescale(module, timer);
 	const uint64_t elapsed = counting ? timer_cycle.c - timeout->c : 0;
 
 	timeout->c = timer_cycle.c +
-		period * prescale - (elapsed % (period * prescale));
+		prescale * period - (elapsed % (prescale * period));
 
 	/*
 	 * When an interrupt is received on an enabled channel, the
@@ -210,6 +243,7 @@ static void timer_delay_event(struct cf68901_module *module,
 	 */
 	if (counting && timer_rd_interrupt_enable(module, timer))
 		timer_wr_interrupt_pending(module, timer, true);
+	timer->state->period = period;
 
 request_event:; /* Label followed by a declaration is a C23 extension. */
 	const struct cf68901_clk e =
