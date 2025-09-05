@@ -2,7 +2,6 @@
 /* Copyright (C) 2025 Fredrik Noring */
 
 #include "cf68901/macro.h"
-
 #include "cf68901/module/assert.h"
 #include "cf68901/module/cf68901.h"
 
@@ -20,22 +19,22 @@ struct cf68901_timer {
 };
 
 static uint64_t cycle_transform(
-	uint64_t to_frequency, uint64_t from_frequcy, uint64_t cycle)
+	uint64_t to_frequency, uint64_t from_frequency, uint64_t cycle)
 {
-	const uint64_t q = cycle / from_frequcy;
-	const uint64_t r = cycle % from_frequcy;
+	const uint64_t q = cycle / from_frequency;
+	const uint64_t r = cycle % from_frequency;
 
-	return q * to_frequency + (r * to_frequency) / from_frequcy;
+	return q * to_frequency + (r * to_frequency) / from_frequency;
 }
 
 static uint64_t cycle_transform_align(
-	uint64_t to_frequency, uint64_t from_frequcy, uint64_t cycle)
+	uint64_t to_frequency, uint64_t from_frequency, uint64_t cycle)
 {
-	const uint64_t q = cycle / from_frequcy;
-	const uint64_t r = cycle % from_frequcy;
+	const uint64_t q = cycle / from_frequency;
+	const uint64_t r = cycle % from_frequency;
 
 	return q * to_frequency +
-		(r * to_frequency + from_frequcy - 1) / from_frequcy;
+		(r * to_frequency + from_frequency - 1) / from_frequency;
 }
 
 static struct cf68901_timer_cycle timer_from_mfp_cycle(
@@ -423,7 +422,7 @@ static void mfp_hardwire(struct cf68901_module *module)
 				(struct cf68901_timer_state) { }
 
 static struct cf68901_event mfp_wr_u8(struct cf68901_module *module,
-	struct cf68901_clk clk, uint8_t reg, uint8_t db)
+	struct cf68901_clk clk, uint8_t reg, uint8_t val)
 {
 	const bool sei = module->state.reg.vr.sei;
 
@@ -450,7 +449,7 @@ static struct cf68901_event mfp_wr_u8(struct cf68901_module *module,
 		 */
 	case CF68901_REG_IPRA:
 	case CF68901_REG_IPRB:
-		db &= module->state.reg.u8[reg];
+		val &= module->state.reg.u8[reg];
 		break;
 
 	case TIMER_RESET(a, TADR, TACR,  0x0f); break;
@@ -459,7 +458,7 @@ static struct cf68901_event mfp_wr_u8(struct cf68901_module *module,
 	case TIMER_RESET(d, TDDR, TCDCR, 0x07); break;
 	}
 
-	module->state.reg.u8[reg] = db;
+	module->state.reg.u8[reg] = val;
 	mfp_hardwire(module);
 
 	switch (reg) {

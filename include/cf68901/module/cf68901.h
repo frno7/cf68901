@@ -234,7 +234,7 @@ struct cf68901_port {
 	uint8_t (*rd_da)(struct cf68901_module *module,
 		struct cf68901_clk clk, uint8_t reg);
 	struct cf68901_event (*wr_da)(struct cf68901_module *module,
-		struct cf68901_clk clk, uint8_t reg, uint8_t db);
+		struct cf68901_clk clk, uint8_t reg, uint8_t val);
 	uint32_t (*vector)(struct cf68901_module *module);
 	struct cf68901_event (*event)(struct cf68901_module *module,
 		struct cf68901_clk clk);
