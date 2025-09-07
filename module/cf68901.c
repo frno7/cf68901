@@ -59,8 +59,8 @@ static struct cf68901_clk mfp_from_timer_cycle_align(
 #define DEFINE_MFP_IR(symbol_, reg_)					\
 static uint16_t mfp_##symbol_(struct cf68901_module *module)		\
 {									\
-	return (module->state.reg.u8[CF68901_REG_##reg_##A] << 8) |	\
-		module->state.reg.u8[CF68901_REG_##reg_##B];		\
+	return (module->state.regs.u8[CF68901_REG_##reg_##A] << 8) |	\
+		module->state.regs.u8[CF68901_REG_##reg_##B];		\
 }
 
 DEFINE_MFP_IR(ier, IER)		/* 16-bit interrupt enable register */
@@ -84,7 +84,7 @@ CF68901_CTRL_DIV(CF68901_CTRL_DIV_PRESCALE)
 static void mfp_wr_interrupt_pending(
 	struct cf68901_module *module, int i, bool pending)
 {
-	uint8_t *ipr = &module->state.reg.u8
+	uint8_t *ipr = &module->state.regs.u8
 		[i < 8 ? CF68901_REG_IPRB : CF68901_REG_IPRA];
 	uint8_t m = 1 << (i & 7);
 
@@ -97,7 +97,7 @@ static void mfp_wr_interrupt_pending(
 static void mfp_wr_interrupt_service(
 	struct cf68901_module *module, int i, bool service)
 {
-	uint8_t *isr = &module->state.reg.u8
+	uint8_t *isr = &module->state.regs.u8
 		[i < 8 ? CF68901_REG_ISRB : CF68901_REG_ISRA];
 	uint8_t m = 1 << (i & 7);
 
@@ -287,8 +287,8 @@ static int assert_mfp_irq(struct cf68901_module *module)
 	const struct cf68901_timer timer_##symbol_ = (struct cf68901_timer) { \
 		.name = #name_,						\
 		.channel = channel_,					\
-		.data = &state_.reg.u8[CF68901_REG_##dr_],		\
-		.ctrl = &state_.reg.u8[CF68901_REG_##cr_],		\
+		.data = &state_.regs.u8[CF68901_REG_##dr_],		\
+		.ctrl = &state_.regs.u8[CF68901_REG_##cr_],		\
 		.ctrl_shift = cr_shift_,				\
 		.state = &state_.timer_##symbol_,			\
 	}
@@ -320,8 +320,8 @@ static struct cf68901_event mfp_event(struct cf68901_module *module,
 	struct cf68901_event event = { };
 	DEFINE_TIMERS(module->state);
 
-	TIMER_OP_MODE(module->state.reg.tacr, &timer_a, &module->state.tai);
-	TIMER_OP_MODE(module->state.reg.tbcr, &timer_b, &module->state.tbi);
+	TIMER_OP_MODE(module->state.regs.tacr, &timer_a, &module->state.tai);
+	TIMER_OP_MODE(module->state.regs.tbcr, &timer_b, &module->state.tbi);
 	timer_delay_event(module, &event, &timer_c, timer_cycle);
 	timer_delay_event(module, &event, &timer_d, timer_cycle);
 
@@ -380,10 +380,10 @@ static uint32_t mfp_irq_vector(struct cf68901_module *module)
 	 * the interrupt handler.
 	 */
 	mfp_wr_interrupt_pending(module, irq, false);
-	if (module->state.reg.vr.sei)
+	if (module->state.regs.vr.sei)
 		mfp_wr_interrupt_service(module, irq, true);
 
-	return (module->state.reg.vr.base << 4) + irq;
+	return (module->state.regs.vr.base << 4) + irq;
 }
 
 static uint8_t mfp_rd_u8(struct cf68901_module *module,
@@ -393,7 +393,7 @@ static uint8_t mfp_rd_u8(struct cf68901_module *module,
 		timer_from_mfp_cycle(module->frequency, clk);
 	DEFINE_TIMERS(module->state);
 
-	if (ARRAY_SIZE(module->state.reg.u8) <= reg)
+	if (ARRAY_SIZE(module->state.regs.u8) <= reg)
 		return 0;
 
 	switch (reg) {
@@ -401,32 +401,32 @@ static uint8_t mfp_rd_u8(struct cf68901_module *module,
 	case CF68901_REG_TBDR: return timer_counter(module, &timer_b, timer_cycle);
 	case CF68901_REG_TCDR: return timer_counter(module, &timer_c, timer_cycle);
 	case CF68901_REG_TDDR: return timer_counter(module, &timer_d, timer_cycle);
-	default:	       return module->state.reg.u8[reg];
+	default:	       return module->state.regs.u8[reg];
 	}
 }
 
 static void mfp_hardwire(struct cf68901_module *module)
 {
-	module->state.reg.vr.unused = 0;
-	module->state.reg.tacr.unused = 0;
-	module->state.reg.tbcr.unused = 0;
-	module->state.reg.tcdcr.tc_unused = 0;
-	module->state.reg.tcdcr.td_unused = 0;
-	module->state.reg.ucr.unused = 0;
+	module->state.regs.vr.unused = 0;
+	module->state.regs.tacr.unused = 0;
+	module->state.regs.tbcr.unused = 0;
+	module->state.regs.tcdcr.tc_unused = 0;
+	module->state.regs.tcdcr.td_unused = 0;
+	module->state.regs.ucr.unused = 0;
 }
 
 #define TIMER_RESET(symbol_, tdr_, tcr_, mode_mask_)			\
 	CF68901_REG_##tdr_:						\
-		if (!(module->state.reg.u8[CF68901_REG_##tcr_] & mode_mask_)) \
+		if (!(module->state.regs.u8[CF68901_REG_##tcr_] & mode_mask_)) \
 			module->state.timer_##symbol_ =			\
 				(struct cf68901_timer_state) { }
 
 static struct cf68901_event mfp_wr_u8(struct cf68901_module *module,
 	struct cf68901_clk clk, uint8_t reg, uint8_t val)
 {
-	const bool sei = module->state.reg.vr.sei;
+	const bool sei = module->state.regs.vr.sei;
 
-	if (ARRAY_SIZE(module->state.reg.u8) <= reg)
+	if (ARRAY_SIZE(module->state.regs.u8) <= reg)
 		goto out;
 
 	/* FIXME: Proper read/write of GPIP */
@@ -449,7 +449,7 @@ static struct cf68901_event mfp_wr_u8(struct cf68901_module *module,
 		 */
 	case CF68901_REG_IPRA:
 	case CF68901_REG_IPRB:
-		val &= module->state.reg.u8[reg];
+		val &= module->state.regs.u8[reg];
 		break;
 
 	case TIMER_RESET(a, TADR, TACR,  0x0f); break;
@@ -458,7 +458,7 @@ static struct cf68901_event mfp_wr_u8(struct cf68901_module *module,
 	case TIMER_RESET(d, TDDR, TCDCR, 0x07); break;
 	}
 
-	module->state.reg.u8[reg] = val;
+	module->state.regs.u8[reg] = val;
 	mfp_hardwire(module);
 
 	switch (reg) {
@@ -478,10 +478,10 @@ static struct cf68901_event mfp_wr_u8(struct cf68901_module *module,
 		 * a channel is disabled, the in-service bit of that
 		 * channel will remain set until cleared by software.
 		 */
-		module->state.reg.u8[CF68901_REG_IPRA] &=
-		module->state.reg.u8[CF68901_REG_IERA];
-		module->state.reg.u8[CF68901_REG_IPRB] &=
-		module->state.reg.u8[CF68901_REG_IERB];
+		module->state.regs.u8[CF68901_REG_IPRA] &=
+		module->state.regs.u8[CF68901_REG_IERA];
+		module->state.regs.u8[CF68901_REG_IPRB] &=
+		module->state.regs.u8[CF68901_REG_IERB];
 		break;
 
 	case CF68901_REG_ISRA:
@@ -490,9 +490,9 @@ static struct cf68901_event mfp_wr_u8(struct cf68901_module *module,
 		 * S=1: Software end-of-interrupt mode and ISR enabled.
 		 * S=0: Automatic end-of-interrupt mode and ISR forced low.
 		 */
-		if (!module->state.reg.vr.sei)
-			module->state.reg.u8[CF68901_REG_ISRA] =
-			module->state.reg.u8[CF68901_REG_ISRB] = 0;
+		if (!module->state.regs.vr.sei)
+			module->state.regs.u8[CF68901_REG_ISRA] =
+			module->state.regs.u8[CF68901_REG_ISRB] = 0;
 		break;
 
 	case CF68901_REG_VR:
@@ -501,15 +501,15 @@ static struct cf68901_event mfp_wr_u8(struct cf68901_module *module,
 		 * are cleared if the S-bit of the vector register is
 		 * cleared.
 		 */
-		if (sei && !module->state.reg.vr.sei)
-			module->state.reg.u8[CF68901_REG_ISRA] =
-			module->state.reg.u8[CF68901_REG_ISRB] = 0;
+		if (sei && !module->state.regs.vr.sei)
+			module->state.regs.u8[CF68901_REG_ISRA] =
+			module->state.regs.u8[CF68901_REG_ISRB] = 0;
 		break;
 	}
 
-	if (!module->state.reg.vr.sei)
-		MODULE_BUG_ON(module, module->state.reg.u8[CF68901_REG_ISRA]
-				   || module->state.reg.u8[CF68901_REG_ISRB]);
+	if (!module->state.regs.vr.sei)
+		MODULE_BUG_ON(module, module->state.regs.u8[CF68901_REG_ISRA]
+				   || module->state.regs.u8[CF68901_REG_ISRB]);
 
 out:
 	return mfp_event(module, clk);
@@ -517,23 +517,23 @@ out:
 
 #define WR_GPIP(bit_, rbab_, ier_, ipr_)				\
 	case bit_:							\
-		if ((reg->u8[CF68901_REG_##ier_] & (1 << rbab_)) == 0)	\
+		if ((regs->u8[CF68901_REG_##ier_] & (1 << rbab_)) == 0)	\
 			return NO_EVENT;				\
-		reg->u8[CF68901_REG_##ipr_] |= 1 << rbab_;		\
+		regs->u8[CF68901_REG_##ipr_] |= 1 << rbab_;		\
 		break
 
 static struct cf68901_event mfp_wr_gpip(struct cf68901_module *module,
 	struct cf68901_clk clk, uint8_t bit, bool level)
 {
-	union cf68901_reg *reg = &module->state.reg;
+	struct cf68901_regs *regs = &module->state.regs;
 
 	if ((module->port.state.gpip & (1 << bit)) == (level << bit))
 		return NO_EVENT;
 	module->port.state.gpip ^= 1 << bit;
 
-	if ((reg->u8[CF68901_REG_DDR] & (1 << bit)) != 0)
+	if ((regs->u8[CF68901_REG_DDR] & (1 << bit)) != 0)
 		return NO_EVENT;
-	if ((reg->u8[CF68901_REG_AER] & (1 << bit)) != (level << bit))
+	if ((regs->u8[CF68901_REG_AER] & (1 << bit)) != (level << bit))
 		return NO_EVENT;
 
 	switch (bit) {
@@ -555,9 +555,9 @@ static struct cf68901_event mfp_wr_gpip(struct cf68901_module *module,
 	if (level == port_level)					\
 		return NO_EVENT;					\
 	port_level = level;						\
-	if (!module->state.reg.tabcr_.event)				\
+	if (!module->state.regs.tabcr_.event)				\
 		return NO_EVENT;					\
-	if (level != module->state.reg.aer.gpip_)			\
+	if (level != module->state.regs.aer.gpip_)			\
 		return NO_EVENT;					\
 	tabi_.events++;							\
 	return mfp_event(module, clk)
@@ -589,7 +589,7 @@ static void cf68901_reset_l(struct cf68901_module *module,
 struct cf68901_module cf68901_init(uint32_t clk_frequency,
 	uint32_t xtal1_frequency)
 {
-	BUILD_BUG_ON(sizeof(union cf68901_reg) != 24);
+	BUILD_BUG_ON(sizeof(struct cf68901_regs) != 24);
 
 	return (struct cf68901_module) {
 		.port = {

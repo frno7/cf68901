@@ -192,13 +192,15 @@ struct cf68901_udr {
 	uint8_t data;
 };
 
-union cf68901_reg {
-	struct {
+struct cf68901_regs {
+	union {
+		struct {
 #define CF68901_DEFINE_REG_STRUCT(register_, symbol_, label_, description_) \
-	struct cf68901_##symbol_ symbol_;
+			struct cf68901_##symbol_ symbol_;
 CF68901_REGISTERS(CF68901_DEFINE_REG_STRUCT)
+		};
+		uint8_t u8[24];
 	};
-	uint8_t u8[24];
 };
 
 struct cf68901_timer_cycle {
@@ -269,7 +271,7 @@ struct cf68901_module {
 	struct cf68901_clk clk;
 
 	struct cf68901_state {
-		union cf68901_reg reg;
+		struct cf68901_regs regs;
 
 		struct cf68901_timer_state timer_a;
 		struct cf68901_timer_state timer_b;
