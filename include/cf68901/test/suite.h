@@ -26,6 +26,7 @@ CF68901_TEST_PROTOTYPE;
 	CF68901_TEST_REGS(a)
 
 #define CF68901_TEST_ASSERTS(a)						\
-	a(IRQ_L)
+	a(IRQ_L)							\
+	a(TADR)
 
 #endif /* CF68901_TEST_SUITE_H */

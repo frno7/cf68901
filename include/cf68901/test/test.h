@@ -142,6 +142,19 @@ static inline void assign_##signal(					\
 	}								\
 })
 
+#define assert_TADR(module, event, irq, clk, value, line)		\
+({									\
+	const bool assert = (module)->					\
+		port.rd_da(module, clk, CF68901_REG_TADR) == (value);	\
+	if (!assert) {							\
+		static char str[1024];					\
+		snprintf(str, sizeof(str),				\
+			"%s:%d: error: assert: %08" PRIu64 ": TADR!%d", \
+			source, line, clk.c, value);			\
+		return str;						\
+	}								\
+})
+
 CF68901_TEST_REGS(CF68901_DEFINE_ASSIGN)
 
 #endif /* CF68901_TEST_TEST_H */
