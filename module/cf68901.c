@@ -142,13 +142,10 @@ static uint32_t timer_prescale(struct cf68901_module *module,
 	return mfp_ctrl_prescale(module, timer_ctrl(timer));
 }
 
-static uint8_t timer_counter(struct cf68901_module *module,
+static uint8_t timer_counter_delay_event(struct cf68901_module *module,
 	const struct cf68901_timer *timer,
 	const struct cf68901_timer_cycle timer_cycle)
 {
-	if (timer_ctrl(timer) == cf68901_ctrl_stop)
-		return *timer->data;
-
 	const struct cf68901_timer_cycle *timeout = &timer->state->timeout;
 
 	if (!timeout->c)
@@ -166,6 +163,16 @@ static uint8_t timer_counter(struct cf68901_module *module,
 	const uint32_t period = timer_period(timer);
 
 	return period - (elapsed % period);
+}
+
+static uint8_t timer_counter(struct cf68901_module *module,
+	const struct cf68901_timer *timer,
+	const struct cf68901_timer_cycle timer_cycle)
+{
+	if (timer_ctrl(timer) == cf68901_ctrl_stop)
+		return *timer->data;
+
+	return timer_counter_delay_event(module, timer, timer_cycle);
 }
 
 static bool prescale_changed(const struct cf68901_timer *timer,
