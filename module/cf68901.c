@@ -260,12 +260,18 @@ static void timer_event_count(struct cf68901_module *module,
 	const struct cf68901_timer *timer, struct cf68901_tabi *tabi,
 	const struct cf68901_timer_cycle timer_cycle)
 {
-	if (tabi->events < timer_period(timer))
+	const uint32_t period = timer_period(timer);
+
+	if (!timer->state->period)
+		timer->state->period = period;
+
+	if (tabi->events < timer->state->period)
 		return;
 
-	tabi->events %= timer_period(timer);
+	tabi->events %= timer->state->period;
 
 	timer_wr_interrupt_pending(module, timer);
+	timer->state->period = period;
 }
 
 static int assert_mfp_irq(struct cf68901_module *module)
