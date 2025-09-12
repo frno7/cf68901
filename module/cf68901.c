@@ -5,9 +5,6 @@
 #include "cf68901/module/assert.h"
 #include "cf68901/module/cf68901.h"
 
-#define NO_EVENT        ((struct cf68901_event) { })
-#define CLK_EVENT(clk_) ((struct cf68901_event) { .clk = clk_ })
-
 struct cf68901_timer {
 	const char *name;
 	uint8_t channel;
@@ -369,7 +366,7 @@ static struct cf68901_event mfp_event(struct cf68901_module *module,
 	 */
 	event.irq = assert_mfp_irq(module) != -1;
 
-	return event;
+	return module->port.state.event = event;
 }
 
 static uint32_t mfp_irq_vector(struct cf68901_module *module)
@@ -407,6 +404,8 @@ static uint32_t mfp_irq_vector(struct cf68901_module *module)
 	mfp_wr_interrupt_pending(module, irq, false);
 	if (module->state.regs.vr.sei)
 		mfp_wr_interrupt_service(module, irq, true);
+
+	module->port.state.event.irq = assert_mfp_irq(module) != -1;
 
 	return (module->state.regs.vr.base << 4) + irq;
 }
@@ -540,10 +539,24 @@ out:
 	return mfp_event(module, clk);
 }
 
+static inline struct cf68901_event no_event(struct cf68901_module *module)
+{
+	return module->port.state.event;
+}
+
+static inline struct cf68901_event clk_event(struct cf68901_module *module,
+	struct cf68901_clk clk)
+{
+	return (struct cf68901_event) {
+		.irq = module->port.state.event.irq,
+		.clk = clk,	/* FIXME: Increment cycle */
+	};
+}
+
 #define WR_GPIP(bit_, rbab_, ier_, ipr_)				\
 	case bit_:							\
 		if ((regs->u8[CF68901_REG_##ier_] & (1 << rbab_)) == 0)	\
-			return NO_EVENT;				\
+			return no_event(module);			\
 		regs->u8[CF68901_REG_##ipr_] |= 1 << rbab_;		\
 		break
 
@@ -553,13 +566,13 @@ static struct cf68901_event mfp_wr_gpip(struct cf68901_module *module,
 	struct cf68901_regs *regs = &module->state.regs;
 
 	if ((module->port.state.gpip & (1 << bit)) == (level << bit))
-		return NO_EVENT;
+		return no_event(module);
 	module->port.state.gpip ^= 1 << bit;
 
 	if ((regs->u8[CF68901_REG_DDR] & (1 << bit)) != 0)
-		return NO_EVENT;
+		return no_event(module);
 	if ((regs->u8[CF68901_REG_AER] & (1 << bit)) != (level << bit))
-		return NO_EVENT;
+		return no_event(module);
 
 	switch (bit) {
 		WR_GPIP(7, 7, IERA, IPRA);
@@ -573,17 +586,17 @@ static struct cf68901_event mfp_wr_gpip(struct cf68901_module *module,
 		default: MODULE_BUG(module);
 	};
 
-	return CLK_EVENT(clk);
+	return clk_event(module, clk);
 }
 
 #define TABI(port_level, tabi_, gpip_, tabcr_)				\
 	if (level == port_level)					\
-		return NO_EVENT;					\
+		return no_event(module);				\
 	port_level = level;						\
 	if (!module->state.regs.tabcr_.event)				\
-		return NO_EVENT;					\
+		return no_event(module);				\
 	if (level != module->state.regs.aer.gpip_)			\
-		return NO_EVENT;					\
+		return no_event(module);				\
 	tabi_.events++;							\
 	return mfp_event(module, clk)
 

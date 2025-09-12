@@ -255,6 +255,8 @@ struct cf68901_port {
 		uint8_t gpip;
 		bool tai;
 		bool tbi;
+
+		struct cf68901_event event;
 	} state;
 };
 
