@@ -1,0 +1,29 @@
+CLK=4000000		-- 4.000000 MHz CLK
+XTAL1=2457600		-- 2.457600 MHz XTAL1
+
+RESET_L=0 #4
+RESET_L=1 #4
+
+#2 VR=0x40		-- Vector base 0x40 with SEI=0
+#1 IMRA=0b00100000	-- Timer A mask enable
+#1 IERA=0b00100000	-- Timer A enable
+#1 TADR=1		-- Data counter 1
+#1 TACR=0b00001000	-- Control mode 0b1000 is event count mode
+
+#123 TAI=1		-- Wait some arbitrary time and set TAI high
+#456 IRQ_L!1		-- An interrupt is not yet asserted
+
+#1 TAI=0		-- Timer A data counter will count down from 1 to 0
+#1 VECTOR!0x4d		-- Acknowledge timer A interrupt on channel 13 (0xd)
+
+-- Again...
+#3 TAI=1
+#4 IRQ_L!1
+#1 TAI=0
+#1 VECTOR!0x4d
+
+-- And again...
+#3 TAI=1
+#4 IRQ_L!1
+#1 TAI=0
+#1 VECTOR!0x4d

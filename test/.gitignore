@@ -1,3 +1,5 @@
 /pcsc
 /delaymode
 /delaymode.c
+/eventmode
+/eventmode.c
