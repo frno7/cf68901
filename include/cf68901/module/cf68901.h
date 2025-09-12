@@ -6,31 +6,31 @@
 
 #include "cf68901/types.h"
 
-#define CF68901_REGISTERS(reg)						\
-	reg( 0, gpdr,  GPDR,  "General-purpose I/O data register")	\
-	reg( 1, aer,   AER,   "Active edge register")			\
-	reg( 2, ddr,   DDR,   "Data direction register")		\
-	reg( 3, iera,  IERA,  "Interrupt enable register A")		\
-	reg( 4, ierb,  IERB,  "Interrupt enable register B")		\
-	reg( 5, ipra,  IPRA,  "Interrupt pending register A")		\
-	reg( 6, iprb,  IPRB,  "Interrupt pending register B")		\
-	reg( 7, isra,  ISRA,  "Interrupt in-service register A")	\
-	reg( 8, isrb,  ISRB,  "Interrupt in-service register B")	\
-	reg( 9, imra,  IMRA,  "Interrupt mask register A")		\
-	reg(10, imrb,  IMRB,  "Interrupt mask register B")		\
-	reg(11, vr,    VR,    "Vector register")			\
-	reg(12, tacr,  TACR,  "Timer A control register")		\
-	reg(13, tbcr,  TBCR,  "Timer B control register")		\
-	reg(14, tcdcr, TCDCR, "Timers C and D control register")	\
-	reg(15, tadr,  TADR,  "Timer A data register")			\
-	reg(16, tbdr,  TBDR,  "Timer B data register")			\
-	reg(17, tcdr,  TCDR,  "Timer C data register")			\
-	reg(18, tddr,  TDDR,  "Timer D data register")			\
-	reg(19, scr,   SCR,   "Synchronous character register")		\
-	reg(20, ucr,   UCR,   "USART control register")			\
-	reg(21, rsr,   RSR,   "Receiver status register")		\
-	reg(22, tsr,   TSR,   "Transmitter status register")		\
-	reg(23, udr,   UDR,   "USART data register")
+#define CF68901_REGISTERS(r)						\
+	r( 0, gpdr,  GPDR,  "General-purpose I/O data register")	\
+	r( 1, aer,   AER,   "Active edge register")			\
+	r( 2, ddr,   DDR,   "Data direction register")			\
+	r( 3, iera,  IERA,  "Interrupt enable register A")		\
+	r( 4, ierb,  IERB,  "Interrupt enable register B")		\
+	r( 5, ipra,  IPRA,  "Interrupt pending register A")		\
+	r( 6, iprb,  IPRB,  "Interrupt pending register B")		\
+	r( 7, isra,  ISRA,  "Interrupt in-service register A")		\
+	r( 8, isrb,  ISRB,  "Interrupt in-service register B")		\
+	r( 9, imra,  IMRA,  "Interrupt mask register A")		\
+	r(10, imrb,  IMRB,  "Interrupt mask register B")		\
+	r(11, vr,    VR,    "Vector register")				\
+	r(12, tacr,  TACR,  "Timer A control register")			\
+	r(13, tbcr,  TBCR,  "Timer B control register")			\
+	r(14, tcdcr, TCDCR, "Timers C and D control register")		\
+	r(15, tadr,  TADR,  "Timer A data register")			\
+	r(16, tbdr,  TBDR,  "Timer B data register")			\
+	r(17, tcdr,  TCDR,  "Timer C data register")			\
+	r(18, tddr,  TDDR,  "Timer D data register")			\
+	r(19, scr,   SCR,   "Synchronous character register")		\
+	r(20, ucr,   UCR,   "USART control register")			\
+	r(21, rsr,   RSR,   "Receiver status register")			\
+	r(22, tsr,   TSR,   "Transmitter status register")		\
+	r(23, udr,   UDR,   "USART data register")
 
 enum {
 #define CF68901_REG_ENUM(register_, symbol_, label_, description_)	\
