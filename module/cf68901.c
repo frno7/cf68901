@@ -114,9 +114,16 @@ static bool timer_rd_interrupt_enable(
 }
 
 static void timer_wr_interrupt_pending(struct cf68901_module *module,
-	const struct cf68901_timer *timer, bool pending)
+	const struct cf68901_timer *timer)
 {
-	mfp_wr_interrupt_pending(module, timer->channel, pending);
+	/*
+	 * A disabled channel is completely inactive; interrupts
+	 * received on the channel are ignored by the MFP.
+	 */
+	if (!timer_rd_interrupt_enable(module, timer))
+		return;
+
+	mfp_wr_interrupt_pending(module, timer->channel, true);
 }
 
 static uint32_t timer_period(const struct cf68901_timer *timer)
@@ -236,12 +243,9 @@ static void timer_delay_event(struct cf68901_module *module,
 	 * determine the interrupting channel, and then the interrupt
 	 * pending bit is cleared by the interrupt handling routine
 	 * without performing an interrupt acknowledge sequence.
-	 *
-	 * A disabled channel is inactive; interrupts received on the
-	 * channel are ignored by the MFP.
 	 */
-	if (counting && timer_rd_interrupt_enable(module, timer))
-		timer_wr_interrupt_pending(module, timer, true);
+	if (counting)
+		timer_wr_interrupt_pending(module, timer);
 	timer->state->period = period;
 
 request_event:; /* Label followed by a declaration is a C23 extension. */
@@ -256,19 +260,12 @@ static void timer_event_count(struct cf68901_module *module,
 	const struct cf68901_timer *timer, struct cf68901_tabi *tabi,
 	const struct cf68901_timer_cycle timer_cycle)
 {
-	/*
-	 * A disabled channel is completely inactive; interrupts
-	 * received on the channel are ignored by the MFP.
-	 */
-	if (!timer_rd_interrupt_enable(module, timer))
-		return;
-
 	if (tabi->events < timer_period(timer))
 		return;
 
 	tabi->events %= timer_period(timer);
 
-	timer_wr_interrupt_pending(module, timer, true);
+	timer_wr_interrupt_pending(module, timer);
 }
 
 static int assert_mfp_irq(struct cf68901_module *module)
