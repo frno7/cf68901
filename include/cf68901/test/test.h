@@ -92,6 +92,20 @@ static inline void assign_RESET_L(					\
 	EVENT(event, irq, module->port.reset_l(module, clk, reset_l));	\
 }
 
+static inline void assign_TAI(						\
+	struct cf68901_module *module, struct cf68901_event *event,	\
+	bool *irq, struct cf68901_clk clk, bool level)			\
+{									\
+	EVENT(event, irq, *event = module->port.tai(module, clk, level)); \
+}
+
+static inline void assign_TBI(						\
+	struct cf68901_module *module, struct cf68901_event *event,	\
+	bool *irq, struct cf68901_clk clk, bool level)			\
+{									\
+	EVENT(event, irq, *event = module->port.tbi(module, clk, level)); \
+}
+
 #define CF68901_DEFINE_ASSIGN(signal)					\
 static inline void assign_##signal(					\
 	struct cf68901_module *module, struct cf68901_event *event,	\
