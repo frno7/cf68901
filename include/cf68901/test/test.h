@@ -109,7 +109,7 @@ static inline void assign_##signal(					\
 #define assert_VECTOR(module, event, irq, clk, value, line)		\
 ({									\
 	if (!(*irq))							\
-		ERROR("IRQ not asserted\n");				\
+		ERROR("%s:%d: IRQ not asserted\n", source, line);	\
 	*irq = false;							\
 	bool assert;							\
 	TRACE(event, irq, assert = (module)->port.vector(module) == (value)); \
