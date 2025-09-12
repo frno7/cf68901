@@ -3,7 +3,7 @@
 cf68901_test_dir := $(dir $(lastword $(MAKEFILE_LIST)))
 
 CF68901_TEST := $(addprefix $(cf68901_test_dir),			\
-	timera)
+	delaymode)
 
 CF68901_TEST_PCS := $(addsuffix .pcs,$(CF68901_TEST))
 CF68901_TEST_SRC := $(CF68901_TEST_PCS:%.pcs=%.c)
