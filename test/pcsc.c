@@ -110,10 +110,11 @@ static void pcsc(FILE *out_file, FILE *pcs_file, const char *pcs_path)
 		if (t.type == PCS_TOKEN_TYPE_CYCLE)
 			fprintf(out_file, "\tcycle(%s);\n", t.arg);
 		else if (t.type == PCS_TOKEN_TYPE_ASSIGN)
-			fprintf(out_file, "\tassign(%s, %s);\n", t.cmd, t.arg);
+			fprintf(out_file, "\tassign(%d, %s, %s);\n",
+				t.line, t.cmd, t.arg);
 		else if (t.type == PCS_TOKEN_TYPE_ASSERT)
-			fprintf(out_file, "\tassert(%s, %s, %d);\n",
-				t.cmd, t.arg, t.line);
+			fprintf(out_file, "\tassert(%d, %s, %s);\n",
+				t.line, t.cmd, t.arg);
 		else {
 			fprintf(stderr, "%s: Unknown token type %d\n",
 				pcs_path, t.type);

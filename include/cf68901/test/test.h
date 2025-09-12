@@ -39,26 +39,34 @@
 	}								\
 })
 
-#define assign(signal, value)						\
-	assign_##signal(&module, &event, &irq, clk, value)
-#define assert(signal, value, line)					\
-	assert_##signal(&module, &event, &irq, clk, value, line)
-
 #if defined(HAVE_TRACE)
-#define TRACE(event, irq_, ...)						\
+#define TRACE_A(line, op, cmd, ...)					\
 ({									\
-	printf("%08" PRIu64 " %s", clk.c, #__VA_ARGS__);		\
-	__VA_ARGS__;							\
-	printf(" [irq %d event %" PRIu64 " irq %d]\n",			\
-		*(irq_), (event)->clk.c, (event)->irq);			\
+	printf("%s:%-4s %8" PRIu64 " %-20s irq %d ->",			\
+		source, #line ":",					\
+		clk.c, #cmd #op #__VA_ARGS__, event.irq);		\
+})
+#define TRACE_B(line, op, ...)						\
+({									\
+	printf(" irq %d event %" PRIu64 "\n", event.irq, event.clk.c); \
 })
 #else
-#define TRACE(event, irq, ...) ({ __VA_ARGS__; })
+#define TRACE_A(line, op, ...)
+#define TRACE_B(line, op, ...)
 #endif
+
+#define assign(line, signal, value)					\
+	TRACE_A(line, =, signal, value);				\
+	assign_##signal(&module, &event, &irq, clk, value);		\
+	TRACE_B(line, =)
+#define assert(line, signal, value)					\
+	TRACE_A(line, !, signal, value);				\
+	assert_##signal(&module, &event, &irq, clk, value, line);	\
+	TRACE_B(line, !)
 
 #define EVENT(event, irq_, ...)						\
 ({									\
-	TRACE(event, irq_, __VA_ARGS__);				\
+	__VA_ARGS__;							\
 	if ((event)->irq)						\
 		*(irq_) = true;						\
 })
@@ -95,8 +103,7 @@ static inline void assign_##signal(					\
 
 #define assert_IRQ_L(module, event, irq, clk, value, line)		\
 ({									\
-	bool assert;							\
-	TRACE(event, irq, assert = *(irq) == !(value));			\
+	const bool assert = *(irq) == !(value);				\
 	if (!assert) {							\
 		static char str[1024];					\
 		snprintf(str, sizeof(str),				\
@@ -111,8 +118,7 @@ static inline void assign_##signal(					\
 	if (!(*irq))							\
 		ERROR("%s:%d: IRQ not asserted\n", source, line);	\
 	*irq = false;							\
-	bool assert;							\
-	TRACE(event, irq, assert = (module)->port.vector(module) == (value)); \
+	const bool assert = (module)->port.vector(module) == (value);	\
 	if (!assert) {							\
 		static char str[1024];					\
 		snprintf(str, sizeof(str),				\
