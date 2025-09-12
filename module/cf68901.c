@@ -71,7 +71,7 @@ DEFINE_MFP_IR(imr, IMR)		/* 16-bit interrupt mask register */
 static uint32_t mfp_ctrl_prescale(struct cf68901_module *module,
 	const enum cf68901_ctrl ctrl)
 {
-	switch (ctrl) {
+	switch (ctrl & 7) {
 #define CF68901_CTRL_DIV_PRESCALE(div)					\
 	case cf68901_ctrl_div_##div: return div;
 CF68901_CTRL_DIV(CF68901_CTRL_DIV_PRESCALE)
@@ -133,7 +133,7 @@ static uint32_t timer_period(const struct cf68901_timer *timer)
 
 static uint32_t timer_ctrl(const struct cf68901_timer *timer)
 {
-	return (*timer->ctrl >> timer->ctrl_shift) & 7;
+	return (*timer->ctrl >> timer->ctrl_shift) & 0xf;
 }
 
 static uint32_t timer_prescale(struct cf68901_module *module,
@@ -165,12 +165,27 @@ static uint8_t timer_counter_delay_event(struct cf68901_module *module,
 	return period - (elapsed % period);
 }
 
+static uint8_t timer_counter_event_count(struct cf68901_module *module,
+	const struct cf68901_timer *timer, const struct cf68901_tabi *tabi,
+	const struct cf68901_timer_cycle timer_cycle)
+{
+	if (!tabi) {
+		MODULE_BUG(module);
+		return 0;
+	}
+
+	return timer->state->period - (tabi->events % timer->state->period);
+}
+
 static uint8_t timer_counter(struct cf68901_module *module,
-	const struct cf68901_timer *timer,
+	const struct cf68901_timer *timer, const struct cf68901_tabi *tabi,
 	const struct cf68901_timer_cycle timer_cycle)
 {
 	if (timer_ctrl(timer) == cf68901_ctrl_stop)
 		return *timer->data;
+
+	if (timer_ctrl(timer) == 8)
+		return timer_counter_event_count(module, timer, tabi, timer_cycle);
 
 	return timer_counter_delay_event(module, timer, timer_cycle);
 }
@@ -407,10 +422,10 @@ static uint8_t mfp_rd_u8(struct cf68901_module *module,
 		return 0;
 
 	switch (reg) {
-	case CF68901_REG_TADR: return timer_counter(module, &timer_a, timer_cycle);
-	case CF68901_REG_TBDR: return timer_counter(module, &timer_b, timer_cycle);
-	case CF68901_REG_TCDR: return timer_counter(module, &timer_c, timer_cycle);
-	case CF68901_REG_TDDR: return timer_counter(module, &timer_d, timer_cycle);
+	case CF68901_REG_TADR: return timer_counter(module, &timer_a, &module->state.tai, timer_cycle);
+	case CF68901_REG_TBDR: return timer_counter(module, &timer_b, &module->state.tbi, timer_cycle);
+	case CF68901_REG_TCDR: return timer_counter(module, &timer_c, NULL, timer_cycle);
+	case CF68901_REG_TDDR: return timer_counter(module, &timer_d, NULL, timer_cycle);
 	default:	       return module->state.regs.u8[reg];
 	}
 }
