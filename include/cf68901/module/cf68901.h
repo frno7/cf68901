@@ -287,6 +287,8 @@ struct cf68901_module {
 	struct {
 		void (*report)(const char *fmt, ...)
 			__attribute__((format(printf, 1, 2)));
+
+		bool warned_once;
 	} debug;
 };
 

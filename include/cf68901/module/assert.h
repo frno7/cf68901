@@ -61,10 +61,9 @@
 
 #define MODULE_WARN_ONCE(module, format...)				\
 	do {								\
-		static bool warned__;					\
-		if (!warned__)						\
+		if (!(module)->debug.warned_once)			\
 			pr_warn(module, format);			\
-		warned__ = true;					\
+		(module)->debug.warned_once = true;			\
 	} while (0)
 
 #define MODULE_BUG(module) pr_err_msg(module, "BUG")
