@@ -468,11 +468,13 @@ static struct cf68901_event mfp_wr_u8(struct cf68901_module *module,
 		 * cleared to IPRA and IPRB. Thus a fully polled
 		 * interrupt scheme is possible.
 		 *
-		 * Note: writing a one to IPRA, IPRB has no effect on
-		 * the interrupt pending register.
+		 * Note: writing a one to IPRA, IPRB, ISRA, ISRB has no
+		 * effect on the register.
 		 */
 	case CF68901_REG_IPRA:
 	case CF68901_REG_IPRB:
+	case CF68901_REG_ISRA:
+	case CF68901_REG_ISRB:
 		val &= module->state.regs.u8[reg];
 		break;
 
